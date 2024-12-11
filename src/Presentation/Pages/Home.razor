@@ -1,0 +1,50 @@
+﻿@page "/"
+
+@attribute [Authorize()]
+
+<AuthorizeView>
+    <Authorized>
+        <h2>Welcome, @context.User.Identity?.Name!</h2>
+        <p>Your Claims:</p>
+        <ul>
+            @foreach (var claim in context.User.Claims)
+            {
+                <li><b>@claim.Type</b>: @claim.Value</li>
+            }
+        </ul>
+
+        @if (context.User.IsInRole("Admin"))
+        {
+            <p><button @onclick="HandleAdminClick">Admin-Only Action</button></p>
+        }
+
+        @if (context.User.IsInRole("Distributor"))
+        {
+            <p><button @onclick="HandleDistributorClick">Distributor-Only Action</button></p>
+        }
+
+        <p><button @onclick="HandleCommonClick">General Action</button></p>
+    </Authorized>
+    <NotAuthorized>
+        <h2>You're not authorized.</h2>
+        <p>Please log in to access this content.</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private void HandleAdminClick()
+    {
+        Console.WriteLine("Admin action executed.");
+    }
+
+    private void HandleDistributorClick()
+    {
+        Console.WriteLine("Distributor action executed.");
+    }
+
+    private void HandleCommonClick()
+    {
+        Console.WriteLine("General action executed.");
+    }
+}
+

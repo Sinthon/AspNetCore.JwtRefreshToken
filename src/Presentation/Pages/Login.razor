@@ -1,0 +1,85 @@
+﻿@page "/login"
+@using Presentation.Models
+@using Presentation.Services
+@using Refit
+
+@layout GuestLayout
+
+<main class="form-signin">
+    <EditForm Model="@request" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+
+        <img class="mb-4" src="bootstrap-logo.svg" alt="" width="72" height="57">
+        <h1 class="h3 mb-3 fw-normal">Please sign in</h1>
+
+        <div class="form-floating mb-3">
+            <InputText id="floatingInput" class="form-control" placeholder="name@example.com" @bind-Value="@request.Email" />
+            <label for="floatingInput">Email address</label>
+            <ValidationMessage For="@(() => request.Email)" />
+        </div>
+        <div class="form-floating mb-3">
+            <InputText id="floatingPassword" class="form-control" placeholder="Password" @bind-Value="@request.Password" InputType="password" />
+            <label for="floatingPassword">Password</label>
+            <ValidationMessage For="@(() => request.Password)" />
+        </div>
+
+        <button class="w-100 btn btn-lg btn-primary" type="submit" disabled="@isSubmitting">Sign in</button>
+        <p class="mt-5 mb-3 text-muted">&copy; 2017–2021</p>
+    </EditForm>
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="alert alert-danger mt-3">
+            @ErrorMessage
+        </div>
+    }
+</main>
+
+@code 
+{
+    private LoginRequestDto request = new LoginRequestDto();
+    private string ErrorMessage { get; set; }
+    private bool isSubmitting = false;
+
+    private async Task HandleValidSubmit()
+    {
+        isSubmitting = true;
+        ErrorMessage = string.Empty;
+
+        try
+        {
+            var response = await AuthService.LoginAsync(request);
+
+            if (response is { Content: { } } res)
+            {
+                if(AuthenticationState is JwtAuthenticationStateProvider stateProvider)
+                {
+                    await stateProvider
+                        .MarkUserAsAuthenticated(res.Content.AccessToken, res.Content.RefreshToken);
+                }
+                NavigationManager.NavigateTo("/");
+            }
+            else
+            {
+                ErrorMessage = "Invalid credentials. Please try again.";
+            }
+        }
+        catch (ApiException ex)
+        {
+            ErrorMessage = ex.Content?.ToString() ?? "An error occurred during login.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    [Inject] private IAuthService AuthService { get; set; }
+    [Inject] private NavigationManager NavigationManager { get; set; }
+    [Inject] private AuthenticationStateProvider? AuthenticationState { get; set; }
+}
+
